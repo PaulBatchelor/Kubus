@@ -6,7 +6,6 @@
 //   date: fall 2014
 //   uses: RtAudio by Gary Scavone
 //-----------------------------------------------------------------------------
-#include "RtAudio.h"
 #include <math.h>
 #include <stdlib.h>
 #include <iostream>
@@ -23,7 +22,11 @@ using namespace std;
 #include <string.h>
 #endif
 
+#define cmp_abs(x) ( sqrt( (x).r * (x).r + (x).i * (x).i ) )
 
+#include "RtAudio.h"
+//#include "chuck_fft.h"
+#include "kissfft/kiss_fftr.h"
 
 
 //-----------------------------------------------------------------------------
@@ -48,6 +51,8 @@ void mouseFunc( int button, int state, int x, int y );
 #define MY_CHANNELS 1
 // for convenience
 #define MY_PIE 3.14159265358979
+#define BUFSIZE 1024
+#define FFTSIZE 1024
 
 // width and height
 long g_width = 1024;
@@ -55,12 +60,66 @@ long g_height = 720;
 
 // global buffer
 SAMPLE * g_buffer = NULL;
+SAMPLE * g_window = NULL;
 long g_bufferSize;
+
+kiss_fftr_cfg g_cfg;
+kiss_fft_cpx *g_fftbuf;
 
 // global variables
 bool g_draw_dB = false;
 
+//-----------------------------------------------------------------------------
+// name: hamming()
+// desc: make window
+//-----------------------------------------------------------------------------
+void hamming( float * window, unsigned long length );
+void hamming( float * window, unsigned long length )
+{
+    unsigned long i;
+    double pi, phase = 0, delta;
 
+    pi = 4.*::atan(1.0);
+    delta = 2 * pi / (double) length;
+
+    for( i = 0; i < length; i++ )
+    {
+        window[i] = (float)(0.54 - .46*cos(phase));
+        phase += delta;
+    }
+}
+
+//-----------------------------------------------------------------------------
+// name: hanning()
+// desc: make window
+//-----------------------------------------------------------------------------
+void hanning( float * window, unsigned long length );
+void hanning( float * window, unsigned long length )
+{
+    unsigned long i;
+    double pi, phase = 0, delta;
+
+    pi = 4.*atan(1.0);
+    delta = 2 * pi / (double) length;
+
+    for( i = 0; i < length; i++ )
+    {
+        window[i] = (float)(0.5 * (1.0 - cos(phase)));
+        phase += delta;
+    }
+}
+
+//-----------------------------------------------------------------------------
+// name: apply_window()
+// desc: apply a window to data
+//-----------------------------------------------------------------------------
+void apply_window( float * data, float * window, unsigned long length )
+{
+    unsigned long i;
+
+    for( i = 0; i < length; i++ )
+        data[i] *= window[i];
+}
 
 
 //-----------------------------------------------------------------------------
@@ -98,7 +157,7 @@ int main( int argc, char ** argv )
     // variables
     unsigned int bufferBytes = 0;
     // frame size
-    unsigned int bufferFrames = 1024;
+    unsigned int bufferFrames = BUFSIZE;
     
     // check for audio devices
     if( audio.getDeviceCount() < 1 )
@@ -146,8 +205,17 @@ int main( int argc, char ** argv )
     // allocate global buffer
     g_bufferSize = bufferFrames;
     g_buffer = new SAMPLE[g_bufferSize];
-    memset( g_buffer, 0, sizeof(SAMPLE)*g_bufferSize );
+    memset( g_buffer, 0, sizeof(SAMPLE)*BUFSIZE);
+
+	// FFT init
+	g_cfg = kiss_fftr_alloc(FFTSIZE, 0, NULL, NULL);
+
+	g_fftbuf = (kiss_fft_cpx *) KISS_FFT_MALLOC(sizeof(float) * FFTSIZE);	
     
+	g_window  = new SAMPLE[BUFSIZE];
+    memset( g_window , 0, sizeof(SAMPLE)*g_bufferSize );
+	hanning(g_window, BUFSIZE);
+
     // go for it
     try {
         // start stream
@@ -170,8 +238,9 @@ cleanup:
     // close if open
     if( audio.isStreamOpen() )
         audio.closeStream();
-    
     // done
+    kiss_fftr_free(g_cfg);
+	KISS_FFT_FREE(g_fftbuf);
     return 0;
 }
 
@@ -327,7 +396,7 @@ void displayFunc( )
     glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
     
     // line width
-    glLineWidth( 4.0 );
+    glLineWidth( 1.0 );
     // define a starting point
     GLfloat x = -5;
     // increment
@@ -338,6 +407,9 @@ void displayFunc( )
     
     // start primitive
     glBegin( GL_LINE_STRIP );
+
+	// apply windowing function
+	apply_window(g_buffer, g_window, g_bufferSize);
  
     // loop over buffer
     for( int i = 0; i < g_bufferSize; i++ )
@@ -355,14 +427,18 @@ void displayFunc( )
     glColor3f( 0.1607, 0.6784, 1 );
     glBegin( GL_LINE_STRIP );
 	x = -5; 
-    // loop over buffer
-    for( int i = 0; i < g_bufferSize; i++ )
-    {
-        // plot
-        glVertex2f( x, 2*g_buffer[i] - 2 );
-        // increment x
-        x += xinc;
-    }
+    xinc = ::fabs(x * 4 / g_bufferSize);
+
+	kiss_fftr(g_cfg, g_buffer, g_fftbuf);
+
+	for( int i = 0; i < g_bufferSize / 2; i++ )
+	{
+		// plot
+		//glVertex2f( x, 2 * g_buffer[i] - 2);
+		glVertex2f( x, 0.01 * cmp_abs(g_fftbuf[i]) - 2 );
+		// increment x
+		x += xinc;
+	}
     
     // end primitive
     glEnd();
