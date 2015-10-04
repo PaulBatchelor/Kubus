@@ -22,22 +22,9 @@ using namespace std;
 #include <string.h>
 #endif
 
-#define cmp_abs(x) ( sqrt( (x).r * (x).r + (x).i * (x).i ) )
 
 #include "RtAudio.h"
-//#include "chuck_fft.h"
-#include "kissfft/kiss_fftr.h"
-
-
-//-----------------------------------------------------------------------------
-// function prototypes
-//-----------------------------------------------------------------------------
-void initGfx();
-void idleFunc();
-void displayFunc();
-void reshapeFunc( GLsizei width, GLsizei height );
-void keyboardFunc( unsigned char, int, int );
-void mouseFunc( int button, int state, int x, int y );
+#include "kubus.h"
 
 // our datetype
 #define SAMPLE float
@@ -54,72 +41,7 @@ void mouseFunc( int button, int state, int x, int y );
 #define BUFSIZE 1024
 #define FFTSIZE 1024
 
-// width and height
-long g_width = 1024;
-long g_height = 720;
-
-// global buffer
-SAMPLE * g_buffer = NULL;
-SAMPLE * g_window = NULL;
-long g_bufferSize;
-
-kiss_fftr_cfg g_cfg;
-kiss_fft_cpx *g_fftbuf;
-
-// global variables
-bool g_draw_dB = false;
-
-//-----------------------------------------------------------------------------
-// name: hamming()
-// desc: make window
-//-----------------------------------------------------------------------------
-void hamming( float * window, unsigned long length );
-void hamming( float * window, unsigned long length )
-{
-    unsigned long i;
-    double pi, phase = 0, delta;
-
-    pi = 4.*::atan(1.0);
-    delta = 2 * pi / (double) length;
-
-    for( i = 0; i < length; i++ )
-    {
-        window[i] = (float)(0.54 - .46*cos(phase));
-        phase += delta;
-    }
-}
-
-//-----------------------------------------------------------------------------
-// name: hanning()
-// desc: make window
-//-----------------------------------------------------------------------------
-void hanning( float * window, unsigned long length );
-void hanning( float * window, unsigned long length )
-{
-    unsigned long i;
-    double pi, phase = 0, delta;
-
-    pi = 4.*atan(1.0);
-    delta = 2 * pi / (double) length;
-
-    for( i = 0; i < length; i++ )
-    {
-        window[i] = (float)(0.5 * (1.0 - cos(phase)));
-        phase += delta;
-    }
-}
-
-//-----------------------------------------------------------------------------
-// name: apply_window()
-// desc: apply a window to data
-//-----------------------------------------------------------------------------
-void apply_window( float * data, float * window, unsigned long length )
-{
-    unsigned long i;
-
-    for( i = 0; i < length; i++ )
-        data[i] *= window[i];
-}
+KubusData g_data;
 
 
 //-----------------------------------------------------------------------------
@@ -137,7 +59,7 @@ int callme( void * outputBuffer, void * inputBuffer, unsigned int numFrames,
     for( int i = 0; i < numFrames; i++ )
     {
         // assume mono
-        g_buffer[i] = input[i];
+        g_data.buffer[i] = input[i];
         // zero output
         output[i] = 0;
     }
@@ -203,18 +125,18 @@ int main( int argc, char ** argv )
     // compute
     bufferBytes = bufferFrames * MY_CHANNELS * sizeof(SAMPLE);
     // allocate global buffer
-    g_bufferSize = bufferFrames;
-    g_buffer = new SAMPLE[g_bufferSize];
-    memset( g_buffer, 0, sizeof(SAMPLE)*BUFSIZE);
+    g_data.bufferSize = bufferFrames;
+    g_data.buffer = new SAMPLE[g_data.bufferSize];
+    memset( g_data.buffer, 0, sizeof(SAMPLE)*BUFSIZE);
 
 	// FFT init
-	g_cfg = kiss_fftr_alloc(FFTSIZE, 0, NULL, NULL);
+	g_data.cfg = kiss_fftr_alloc(FFTSIZE, 0, NULL, NULL);
 
-	g_fftbuf = (kiss_fft_cpx *) KISS_FFT_MALLOC(sizeof(float) * FFTSIZE);	
+	g_data.fftbuf = (kiss_fft_cpx *) KISS_FFT_MALLOC(sizeof(float) * FFTSIZE);	
     
-	g_window  = new SAMPLE[BUFSIZE];
-    memset( g_window , 0, sizeof(SAMPLE)*g_bufferSize );
-	hanning(g_window, BUFSIZE);
+	g_data.window  = new SAMPLE[BUFSIZE];
+    memset( g_data.window , 0, sizeof(SAMPLE)*g_data.bufferSize );
+	hanning(g_data.window, BUFSIZE);
 
     // go for it
     try {
@@ -239,24 +161,20 @@ cleanup:
     if( audio.isStreamOpen() )
         audio.closeStream();
     // done
-    kiss_fftr_free(g_cfg);
-	KISS_FFT_FREE(g_fftbuf);
+    kiss_fftr_free(g_data.cfg);
+	KISS_FFT_FREE(g_data.fftbuf);
     return 0;
 }
 
 
 
 
-//-----------------------------------------------------------------------------
-// Name: reshapeFunc( )
-// Desc: called when window size changes
-//-----------------------------------------------------------------------------
 void initGfx()
 {
     // double buffer, use rgb color, enable depth buffer
     glutInitDisplayMode( GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH );
     // initialize the window size
-    glutInitWindowSize( g_width, g_height );
+    glutInitWindowSize( g_data.width, g_data.height );
     // set the window postion
     glutInitWindowPosition( 100, 100 );
     // create the window
@@ -284,14 +202,10 @@ void initGfx()
 
 
 
-//-----------------------------------------------------------------------------
-// Name: reshapeFunc( )
-// Desc: called when window size changes
-//-----------------------------------------------------------------------------
 void reshapeFunc( GLsizei w, GLsizei h )
 {
     // save the new window size
-    g_width = w; g_height = h;
+    g_data.width = w; g_data.height = h;
     // map the view port to the client area
     glViewport( 0, 0, w, h );
     // set the matrix mode to project
@@ -311,10 +225,6 @@ void reshapeFunc( GLsizei w, GLsizei h )
 
 
 
-//-----------------------------------------------------------------------------
-// Name: keyboardFunc( )
-// Desc: key event
-//-----------------------------------------------------------------------------
 void keyboardFunc( unsigned char key, int x, int y )
 {
     switch( key )
@@ -325,20 +235,12 @@ void keyboardFunc( unsigned char key, int x, int y )
             break;
             
         case 'd':
-            g_draw_dB = !g_draw_dB;
             break;
     }
     
     glutPostRedisplay( );
 }
 
-
-
-
-//-----------------------------------------------------------------------------
-// Name: mouseFunc( )
-// Desc: handles mouse stuff
-//-----------------------------------------------------------------------------
 void mouseFunc( int button, int state, int x, int y )
 {
     if( button == GLUT_LEFT_BUTTON )
@@ -371,80 +273,13 @@ void mouseFunc( int button, int state, int x, int y )
 
 
 
-//-----------------------------------------------------------------------------
-// Name: idleFunc( )
-// Desc: callback from GLUT
-//-----------------------------------------------------------------------------
 void idleFunc( )
 {
     // render the scene
     glutPostRedisplay( );
 }
 
-
-
-//-----------------------------------------------------------------------------
-// Name: displayFunc( )
-// Desc: callback function invoked to draw the client area
-//-----------------------------------------------------------------------------
 void displayFunc( )
 {
-    // local state
-    static GLfloat zrot = 0.0f, c = 0.0f;
-    
-    // clear the color and depth buffers
-    glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
-    
-    // line width
-    glLineWidth( 1.0 );
-    // define a starting point
-    GLfloat x = -5;
-    // increment
-    GLfloat xinc = ::fabs(x*2 / g_bufferSize);
-    
-    // color
-    glColor3f( 1, 0, .3019 );
-    
-    // start primitive
-    glBegin( GL_LINE_STRIP );
-
-	// apply windowing function
-	apply_window(g_buffer, g_window, g_bufferSize);
- 
-    // loop over buffer
-    for( int i = 0; i < g_bufferSize; i++ )
-    {
-        // plot
-        glVertex2f( x, 2*g_buffer[i] + 2 );
-        // increment x
-        x += xinc;
-    }
-    
-    // end primitive
-    glEnd();
-    
-	// start primitive
-    glColor3f( 0.1607, 0.6784, 1 );
-    glBegin( GL_LINE_STRIP );
-	x = -5; 
-    xinc = ::fabs(x * 4 / g_bufferSize);
-
-	kiss_fftr(g_cfg, g_buffer, g_fftbuf);
-
-	for( int i = 0; i < g_bufferSize / 2; i++ )
-	{
-		// plot
-		//glVertex2f( x, 2 * g_buffer[i] - 2);
-		glVertex2f( x, 0.01 * cmp_abs(g_fftbuf[i]) - 2 );
-		// increment x
-		x += xinc;
-	}
-    
-    // end primitive
-    glEnd();
-
-    // flush!
-    glFlush( );
-    // swap the double buffer
-    glutSwapBuffers( );
+    kubus_draw(&g_data);
 }
