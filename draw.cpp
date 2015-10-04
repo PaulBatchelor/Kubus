@@ -15,7 +15,18 @@ using namespace std;
 #endif
 
 #include "kubus.h"
-
+void draw_sqare() {
+    glBegin(GL_TRIANGLE_STRIP);
+    glColor3f(0.1607, 0.6784, 1);
+    glVertex2f(-1.0f, -1.0f);
+    glColor3f(1, 1, 1);
+    glVertex2f(-1.0f, 1.0f);
+    glColor3f(0.1607, 0.6784, 1);
+    glVertex2f(1.0f, -1.0f);
+    glColor3f(1, 1, 1);
+    glVertex2f(1.0f, 1.0f);
+    glEnd();
+}
 void kubus_draw(KubusData *kd) 
 {
     // local state
