@@ -15,18 +15,22 @@ using namespace std;
 #endif
 
 #include "kubus.h"
-void draw_sqare() {
+
+float scale_samp(float x) 
+{
+	return 1.3 * log(fabs(x) + 1);
+}
+
+static void draw_square(float x, float y, float scale) 
+{
     glBegin(GL_TRIANGLE_STRIP);
-    glColor3f(0.1607, 0.6784, 1);
-    glVertex2f(-1.0f, -1.0f);
-    glColor3f(1, 1, 1);
-    glVertex2f(-1.0f, 1.0f);
-    glColor3f(0.1607, 0.6784, 1);
-    glVertex2f(1.0f, -1.0f);
-    glColor3f(1, 1, 1);
-    glVertex2f(1.0f, 1.0f);
+    glVertex2f(x + -1.0f * scale , y + -1.0f * scale);
+    glVertex2f(x + -1.0f * scale, y + 1.0f * scale);
+    glVertex2f(x + 1.0f * scale, y + -1.0f * scale);
+    glVertex2f(x + 1.0f * scale, y + 1.0f * scale);
     glEnd();
 }
+
 void kubus_draw(KubusData *kd) 
 {
     // local state
@@ -34,7 +38,8 @@ void kubus_draw(KubusData *kd)
     
     // clear the color and depth buffers
     glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
-    
+	GLfloat scale = 3.0;
+	GLfloat div = 1.0 / 32;
     // line width
     glLineWidth( 1.0 );
     // define a starting point
@@ -43,22 +48,37 @@ void kubus_draw(KubusData *kd)
     GLfloat xinc = ::fabs(x*2 / kd->bufferSize);
     
     // color
-    glColor3f( 1, 0, .3019 );
-    
+    for(int y = 0; y < 32; y++) {
+		for(int x = 0; x < 32; x++) {
+			glColor3f( 
+				0.1607 * scale_samp(kd->buffer[32 * y + x]), 
+				0.6784 * scale_samp(kd->buffer[32 * y + x]), 
+				1 * scale_samp(kd->buffer[32 * y + x])
+			);
+			draw_square(
+				(-1 + div + x * 2 * div) * scale, 
+				(-1 + div + (31 - y) * 2 * div) * scale, 
+				div * scale); 
+		}
+	}
+	
+	glColor3f( 0, 1, 1 );
+	draw_square(0, 0, 1 * scale); 
     // start primitive
     glBegin( GL_LINE_STRIP );
 
 	// apply windowing function
 	apply_window(kd->buffer, kd->window, kd->bufferSize);
- 
+
+
     // loop over buffer
-    for( int i = 0; i < kd->bufferSize; i++ )
-    {
-        // plot
-        glVertex2f( x, 2*kd->buffer[i] + 2 );
-        // increment x
-        x += xinc;
-    }
+    //for( int i = 0; i < kd->bufferSize; i++ )
+    //{
+    //    // plot
+    //    glVertex2f( x, 2*kd->buffer[i] + 2 );
+    //    // increment x
+    //    x += xinc;
+    //}
     
     // end primitive
     glEnd();
@@ -71,14 +91,14 @@ void kubus_draw(KubusData *kd)
 
 	kiss_fftr(kd->cfg, kd->buffer, kd->fftbuf);
 
-	for( int i = 0; i < kd->bufferSize / 2; i++ )
-	{
-		// plot
-		//glVertex2f( x, 2 * g_buffer[i] - 2);
-		glVertex2f( x, 0.1 * cmp_abs(kd->fftbuf[i]) - 2 );
-		// increment x
-		x += xinc;
-	}
+	//for( int i = 0; i < kd->bufferSize / 2; i++ )
+	//{
+	//	// plot
+	//	//glVertex2f( x, 2 * g_buffer[i] - 2);
+	//	glVertex2f( x, 0.1 * cmp_abs(kd->fftbuf[i]) - 2 );
+	//	// increment x
+	//	x += xinc;
+	//}
     
     // end primitive
     glEnd();
