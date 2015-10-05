@@ -10,6 +10,7 @@ SAMPLE *window;
 long bufferSize;
 kiss_fftr_cfg cfg;
 kiss_fft_cpx *fftbuf;
+int showFFT;
 } KubusData;
 
 void initGfx();

@@ -133,7 +133,8 @@ int main( int argc, char ** argv )
 	g_data.cfg = kiss_fftr_alloc(FFTSIZE, 0, NULL, NULL);
 
 	g_data.fftbuf = (kiss_fft_cpx *) KISS_FFT_MALLOC(sizeof(float) * FFTSIZE);	
-    
+   
+	g_data.showFFT = 0; 
 	g_data.window  = new SAMPLE[BUFSIZE];
     memset( g_data.window , 0, sizeof(SAMPLE)*g_data.bufferSize );
 	hanning(g_data.window, BUFSIZE);
@@ -236,6 +237,9 @@ void keyboardFunc( unsigned char key, int x, int y )
             
         case 'd':
             break;
+		case 'f':
+			g_data.showFFT = (g_data.showFFT == 1) ? 0 : 1;
+			break;
     }
     
     glutPostRedisplay( );

@@ -46,6 +46,35 @@ void kubus_draw(KubusData *kd)
     GLfloat x = -5;
     // increment
     GLfloat xinc = ::fabs(x*2 / kd->bufferSize);
+	
+	// start primitive
+    glColor3f( 1, 0, 0.3019 );
+	x = -5; 
+    xinc = ::fabs(x * 4 / kd->bufferSize);
+
+	if(kd->showFFT) {	
+		kiss_fftr(kd->cfg, kd->buffer, kd->fftbuf);
+		for( int i = 0; i < kd->bufferSize / 2; i++ )
+		{
+			//// plot
+			////glVertex2f( x, 2 * g_buffer[i] - 2);
+			//glVertex2f( x, 0.1 * cmp_abs(kd->fftbuf[i]) - 2 );
+			//// increment x
+			//x += xinc;
+			glColor3f( 
+				1 * scale_samp(cmp_abs(kd->fftbuf[i])), 
+				0 * scale_samp(cmp_abs(kd->fftbuf[i])), 
+				0.3019 * scale_samp(cmp_abs(kd->fftbuf[i])) 
+			);
+			int x = i % 32;
+			int y = i / 32; 
+			draw_square(
+				(-1 + div + x * 2 * div) * scale, 
+				(-1 + div + (31 - y) * 2 * div) * scale, 
+				div * scale); 
+
+		}
+	}
     
     // color
     for(int y = 0; y < 32; y++) {
@@ -83,25 +112,8 @@ void kubus_draw(KubusData *kd)
     // end primitive
     glEnd();
     
-	// start primitive
-    glColor3f( 0.1607, 0.6784, 1 );
-    glBegin( GL_LINE_STRIP );
-	x = -5; 
-    xinc = ::fabs(x * 4 / kd->bufferSize);
-
-	kiss_fftr(kd->cfg, kd->buffer, kd->fftbuf);
-
-	//for( int i = 0; i < kd->bufferSize / 2; i++ )
-	//{
-	//	// plot
-	//	//glVertex2f( x, 2 * g_buffer[i] - 2);
-	//	glVertex2f( x, 0.1 * cmp_abs(kd->fftbuf[i]) - 2 );
-	//	// increment x
-	//	x += xinc;
-	//}
     
     // end primitive
-    glEnd();
 
     // flush!
     glFlush( );
