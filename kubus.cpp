@@ -22,9 +22,15 @@ using namespace std;
 #include <string.h>
 #endif
 
+#include <time.h>
 
 #include "RtAudio.h"
+
+#include "rms.h"
+#include "port.h"
 #include "kubus.h"
+
+
 
 // our datetype
 #define SAMPLE float
@@ -51,15 +57,20 @@ KubusData g_data;
 int callme( void * outputBuffer, void * inputBuffer, unsigned int numFrames,
             double streamTime, RtAudioStreamStatus status, void * data )
 {
+
+    KubusData *kd = (KubusData *)data;
     // cast!
     SAMPLE * input = (SAMPLE *)inputBuffer;
     SAMPLE * output = (SAMPLE *)outputBuffer;
-    
+    float rms = 0, port = 0; 
     // fill
     for( int i = 0; i < numFrames; i++ )
     {
         // assume mono
         g_data.buffer[i] = input[i];
+        sp_rms_compute(kd->rms, &g_data.buffer[i], &rms);
+        sp_port_compute(kd->port, &rms, &port);
+        kd->scale = kd->scaleMin  + (kd->scaleMax - kd->scaleMin) * port;
         // zero output
         output[i] = 0;
     }
@@ -113,7 +124,7 @@ int main( int argc, char ** argv )
     try {
         // open a stream
         // audio.openStream( &oParams, &iParams, MY_FORMAT, MY_SRATE, &bufferFrames, &callme, (void *)&bufferBytes, &options );
-        audio.openStream( &oParams, &iParams, MY_FORMAT, MY_SRATE, &bufferFrames, &callme, NULL, &options );
+        audio.openStream( &oParams, &iParams, MY_FORMAT, MY_SRATE, &bufferFrames, &callme, &g_data, &options );
     }
     catch( RtError& e )
     {
@@ -138,6 +149,20 @@ int main( int argc, char ** argv )
 	g_data.window  = new SAMPLE[BUFSIZE];
     memset( g_data.window , 0, sizeof(SAMPLE)*g_data.bufferSize );
 	hanning(g_data.window, BUFSIZE);
+
+    // set scale
+    g_data.scaleMax = 3.0;
+    g_data.scaleMin = 1.0;
+    g_data.scale = g_data.scaleMin;
+    g_data.scale = 3.0;
+
+    sp_rms_create(&g_data.rms);
+    sp_rms_init(MY_SRATE, g_data.rms);
+    sp_port_create(&g_data.port);
+    sp_port_init(MY_SRATE, g_data.port, 0.01);
+
+    //RNG seed
+    srand(time(NULL));
 
     // go for it
     try {
@@ -164,6 +189,8 @@ cleanup:
     // done
     kiss_fftr_free(g_data.cfg);
 	KISS_FFT_FREE(g_data.fftbuf);
+    sp_rms_destroy(&g_data.rms);
+    sp_port_destroy(&g_data.port);
     return 0;
 }
 

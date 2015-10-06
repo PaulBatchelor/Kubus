@@ -1,5 +1,6 @@
 #include <math.h>
 #include <stdlib.h>
+#include <time.h>
 #include <iostream>
 using namespace std;
 
@@ -14,11 +15,14 @@ using namespace std;
 #include <string.h>
 #endif
 
+#include "port.h"
+#include "rms.h"
 #include "kubus.h"
 
 float scale_samp(float x) 
 {
-	return 1.3 * log(fabs(x) + 1);
+    float s = floor((fabs(x) * 5)) / 4.0;
+	return 1.3 * log(s + 1);
 }
 
 static void draw_square(float x, float y, float scale) 
@@ -38,7 +42,7 @@ void kubus_draw(KubusData *kd)
     
     // clear the color and depth buffers
     glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
-	GLfloat scale = 3.0;
+	GLfloat scale = kd->scale;
 	GLfloat div = 1.0 / 32;
     // line width
     glLineWidth( 1.0 );
@@ -46,12 +50,13 @@ void kubus_draw(KubusData *kd)
     GLfloat x = -5;
     // increment
     GLfloat xinc = ::fabs(x*2 / kd->bufferSize);
-	
+    float slope = (kd->scale - kd->scaleMin ) / (kd->scaleMax - kd->scaleMin);
+
 	// start primitive
     glColor3f( 1, 0, 0.3019 );
 	x = -5; 
     xinc = ::fabs(x * 4 / kd->bufferSize);
-
+    GLfloat jitX = 0, jitY = 0;
 	if(kd->showFFT) {	
 		kiss_fftr(kd->cfg, kd->buffer, kd->fftbuf);
 		for( int i = 0; i < kd->bufferSize / 2; i++ )
@@ -70,7 +75,7 @@ void kubus_draw(KubusData *kd)
 			int y = i / 32; 
 			draw_square(
 				(-1 + div + x * 2 * div) * scale, 
-				(-1 + div + (31 - y) * 2 * div) * scale, 
+				(-1 + div + (31 - y) * 2 * div ) * scale, 
 				div * scale); 
 
 		}
@@ -84,15 +89,26 @@ void kubus_draw(KubusData *kd)
 				0.6784 * scale_samp(kd->buffer[32 * y + x]), 
 				1 * scale_samp(kd->buffer[32 * y + x])
 			);
+
+            if( scale >= kd->scaleMax * 0.5 && rand() % 20 == 0) {
+                jitX = 1.0 * rand() / RAND_MAX;
+                jitX *= 2;
+                jitX -= 1;
+                jitX = scale * jitX * slope;
+                jitY = 1.0 * rand() / RAND_MAX;
+                jitY *= 2;
+                jitY -= 1;
+                jitY = scale * jitY * slope;
+            }
 			draw_square(
-				(-1 + div + x * 2 * div) * scale, 
-				(-1 + div + (31 - y) * 2 * div) * scale, 
+				((-1 + div + x * 2 * div) + jitX) * scale, 
+				((-1 + div + (31 - y) * 2 * div) + jitY) * scale, 
 				div * scale); 
 		}
 	}
 	
-	glColor3f( 0, 1, 1 );
-	draw_square(0, 0, 1 * scale); 
+	//glColor3f( 0, 1, 1 );
+	//draw_square(0, 0, 1 * scale); 
     // start primitive
     glBegin( GL_LINE_STRIP );
 

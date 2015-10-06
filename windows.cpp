@@ -14,6 +14,8 @@ using namespace std;
 #include <string.h>
 #endif
 
+#include "port.h"
+#include "rms.h"
 #include "kubus.h"
 
 void hamming( float * window, unsigned long length )

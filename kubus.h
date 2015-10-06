@@ -11,6 +11,10 @@ long bufferSize;
 kiss_fftr_cfg cfg;
 kiss_fft_cpx *fftbuf;
 int showFFT;
+float scale;
+float scaleMax, scaleMin;
+sp_rms *rms;
+sp_port *port;
 } KubusData;
 
 void initGfx();
