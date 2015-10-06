@@ -1,12 +1,19 @@
-CXX=g++
 INCLUDES=
-# FLAGS=-D__MACOSX_CORE__ -c
-FLAGS=-D__UNIX_JACK__ -c
-#LIBS=-framework CoreAudio -framework CoreMIDI -framework CoreFoundation \ -framework IOKit -framework Carbon  -framework OpenGL \
-#	-framework GLUT -framework Foundation \
-#	-framework AppKit -lstdc++ -lm
 
+system ?= $(shell uname -s)
+
+ifeq ($(system), Darwin)
+CXX=clang++
+FLAGS=-D__MACOSX_CORE__ -c
+LIBS=-framework CoreAudio -framework CoreMIDI -framework CoreFoundation \
+	-framework IOKit -framework Carbon  -framework OpenGL \
+	-framework GLUT -framework Foundation \
+	-framework AppKit -lstdc++ -lm
+else
+CXX=g++
+FLAGS=-D__UNIX_JACK__ -c
 LIBS= -ljack -lGL -lGLU -lglut -lstdc++ -lm -lpthread
+endif
 
 OBJS= RtAudio.o kubus.o draw.o windows.o
 
