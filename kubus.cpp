@@ -52,11 +52,11 @@ KubusData g_data;
 
 void kubus_cleanup(KubusData *kd)
 {
-   
-    if( kd->audio->isStreamOpen() )
+    RtAudio *audio = (RtAudio *) kd->audio; 
+    if( audio->isStreamOpen() )
     {
-        kd->audio->stopStream();
-        kd->audio->closeStream();
+        audio->stopStream();
+        audio->closeStream();
     }
     kiss_fftr_free(kd->cfg);
 	KISS_FFT_FREE(kd->fftbuf);
@@ -84,6 +84,8 @@ static int ini_handler(void* user, const char* section, const char* name,
         kd->scaleMin = atof(value);
     }else if (MATCH("visual", "scaleMax")) {
         kd->scaleMax = atof(value);
+    }else if (MATCH("visual", "jit_thresh")) {
+        kd->jit_thresh = atof(value);
     } else {
         return 0;  /* unknown section/name, error */
     }
@@ -116,6 +118,7 @@ void kubus_init(KubusData *kd)
     kd->scale = kd->scaleMin;
     kd->scale = 3.0;
     kd->sr = 44100;
+    kd->jit_thresh = 0.5;
 
 
     // set default toggles

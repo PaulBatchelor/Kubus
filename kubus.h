@@ -3,6 +3,11 @@
 #define cmp_abs(x) ( sqrt( (x).r * (x).r + (x).i * (x).i ) )
 
 typedef struct {
+    float color[3];
+    float x, y;
+} KSquare;
+
+typedef struct {
 long width;
 long height;
 SAMPLE *buffer;
@@ -19,9 +24,14 @@ sp_port *port;
 int tog_jit;
 int tog_pulse;
 
+float jit_thresh;
+
 int sr;
 
-RtAudio *audio;
+void *audio;
+
+KSquare grid[1024];
+
 } KubusData;
 
 void initGfx();
