@@ -12,9 +12,14 @@ kiss_fftr_cfg cfg;
 kiss_fft_cpx *fftbuf;
 int showFFT;
 float scale;
-float scaleMax, scaleMin;
+float scaleMax, scaleMin, scaleDefault;
 sp_rms *rms;
 sp_port *port;
+
+int tog_jit;
+int tog_pulse;
+
+int sr;
 } KubusData;
 
 void initGfx();
@@ -28,3 +33,6 @@ void hanning( float * window, unsigned long length );
 void apply_window( float * data, float * window, unsigned long length );
 
 void kubus_draw(KubusData *kd);
+void kubus_init(KubusData *kd);
+void kubus_cleanup(KubusData *kd);
+

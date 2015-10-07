@@ -29,6 +29,7 @@ using namespace std;
 #include "rms.h"
 #include "port.h"
 #include "kubus.h"
+#include "inih/ini.h"
 
 
 
@@ -49,6 +50,63 @@ using namespace std;
 
 KubusData g_data;
 
+static int ini_handler(void* user, const char* section, const char* name,
+                   const char* value)
+{
+    KubusData* kd = (KubusData *)user;
+
+    #define MATCH(s, n) strcmp(section, s) == 0 && strcmp(name, n) == 0
+    if (MATCH("system", "sr")) {
+        kd->sr = atoi(value);
+    } else {
+        return 0;  /* unknown section/name, error */
+    }
+    #undef MATCH
+    return 1;
+}
+
+void kubus_init(KubusData *kd)
+{
+    // compute
+    // allocate global buffer
+    kd->bufferSize = BUFSIZE;
+    kd->buffer = new SAMPLE[g_data.bufferSize];
+    memset( kd->buffer, 0, sizeof(SAMPLE)*BUFSIZE);
+
+	// FFT init
+	kd->cfg = kiss_fftr_alloc(FFTSIZE, 0, NULL, NULL);
+
+	kd->fftbuf = (kiss_fft_cpx *) KISS_FFT_MALLOC(sizeof(float) * FFTSIZE);	
+   
+	kd->showFFT = 0; 
+	kd->window  = new SAMPLE[BUFSIZE];
+    memset( kd->window , 0, sizeof(SAMPLE)*kd->bufferSize );
+	hanning(kd->window, BUFSIZE);
+
+    // set scale
+    kd->scaleMax = 3.0;
+    kd->scaleMin = 1.0;
+    kd->scaleDefault = 2.0;
+    kd->scale = kd->scaleMin;
+    kd->scale = 3.0;
+
+    sp_rms_create(&kd->rms);
+    sp_rms_init(MY_SRATE, kd->rms);
+    sp_port_create(&kd->port);
+    sp_port_init(MY_SRATE, kd->port, 0.01);
+
+    //RNG seed
+    srand(time(NULL));
+
+    if (ini_parse("config.ini", ini_handler, kd) < 0) {
+        printf("Can't load 'config.ini', using defaults\n");
+        kd->sr = MY_SRATE;
+    }
+
+    // set default toggles
+    kd->tog_jit = 1;
+    kd->tog_pulse = 1;
+}
 
 //-----------------------------------------------------------------------------
 // name: callme()
@@ -88,10 +146,11 @@ int main( int argc, char ** argv )
     // instantiate RtAudio object
     RtAudio audio;
     // variables
-    unsigned int bufferBytes = 0;
     // frame size
     unsigned int bufferFrames = BUFSIZE;
     
+    kubus_init(&g_data);
+
     // check for audio devices
     if( audio.getDeviceCount() < 1 )
     {
@@ -123,8 +182,7 @@ int main( int argc, char ** argv )
     // go for it
     try {
         // open a stream
-        // audio.openStream( &oParams, &iParams, MY_FORMAT, MY_SRATE, &bufferFrames, &callme, (void *)&bufferBytes, &options );
-        audio.openStream( &oParams, &iParams, MY_FORMAT, MY_SRATE, &bufferFrames, &callme, &g_data, &options );
+        audio.openStream( &oParams, &iParams, MY_FORMAT, g_data.sr, &bufferFrames, &callme, &g_data, &options );
     }
     catch( RtError& e )
     {
@@ -132,37 +190,7 @@ int main( int argc, char ** argv )
         cout << e.getMessage() << endl;
         exit( 1 );
     }
-    
-    // compute
-    bufferBytes = bufferFrames * MY_CHANNELS * sizeof(SAMPLE);
-    // allocate global buffer
-    g_data.bufferSize = bufferFrames;
-    g_data.buffer = new SAMPLE[g_data.bufferSize];
-    memset( g_data.buffer, 0, sizeof(SAMPLE)*BUFSIZE);
-
-	// FFT init
-	g_data.cfg = kiss_fftr_alloc(FFTSIZE, 0, NULL, NULL);
-
-	g_data.fftbuf = (kiss_fft_cpx *) KISS_FFT_MALLOC(sizeof(float) * FFTSIZE);	
    
-	g_data.showFFT = 0; 
-	g_data.window  = new SAMPLE[BUFSIZE];
-    memset( g_data.window , 0, sizeof(SAMPLE)*g_data.bufferSize );
-	hanning(g_data.window, BUFSIZE);
-
-    // set scale
-    g_data.scaleMax = 3.0;
-    g_data.scaleMin = 1.0;
-    g_data.scale = g_data.scaleMin;
-    g_data.scale = 3.0;
-
-    sp_rms_create(&g_data.rms);
-    sp_rms_init(MY_SRATE, g_data.rms);
-    sp_port_create(&g_data.port);
-    sp_port_init(MY_SRATE, g_data.port, 0.01);
-
-    //RNG seed
-    srand(time(NULL));
 
     // go for it
     try {
@@ -193,8 +221,6 @@ cleanup:
     sp_port_destroy(&g_data.port);
     return 0;
 }
-
-
 
 
 void initGfx()
@@ -267,6 +293,14 @@ void keyboardFunc( unsigned char key, int x, int y )
 		case 'f':
 			g_data.showFFT = (g_data.showFFT == 1) ? 0 : 1;
 			break;
+        case 'p':
+            g_data.tog_pulse = (g_data.tog_pulse == 1) ? 0 : 1;
+            break;
+        case 'j':
+            g_data.tog_jit= (g_data.tog_jit == 1) ? 0 : 1;
+            break;
+        default:
+            break;
     }
     
     glutPostRedisplay( );

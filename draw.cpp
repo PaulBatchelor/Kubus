@@ -21,8 +21,9 @@ using namespace std;
 
 float scale_samp(float x) 
 {
-    float s = floor((fabs(x) * 5)) / 4.0;
-	return 1.3 * log(s + 1);
+    float s = floor((fabs(x) * 8)) / 8.0;
+	//return 1.3 * log(x + 1);
+    return s;
 }
 
 static void draw_square(float x, float y, float scale) 
@@ -42,7 +43,14 @@ void kubus_draw(KubusData *kd)
     
     // clear the color and depth buffers
     glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
-	GLfloat scale = kd->scale;
+	GLfloat scale;
+
+    if(kd->tog_pulse) {
+        scale = kd->scale;
+    } else {
+        scale = kd->scaleDefault;
+    }
+
 	GLfloat div = 1.0 / 32;
     // line width
     glLineWidth( 1.0 );
@@ -50,7 +58,7 @@ void kubus_draw(KubusData *kd)
     GLfloat x = -5;
     // increment
     GLfloat xinc = ::fabs(x*2 / kd->bufferSize);
-    float slope = (kd->scale - kd->scaleMin ) / (kd->scaleMax - kd->scaleMin);
+    float slope = (scale - kd->scaleMin ) / (kd->scaleMax - kd->scaleMin);
 
 	// start primitive
     glColor3f( 1, 0, 0.3019 );
@@ -90,7 +98,7 @@ void kubus_draw(KubusData *kd)
 				1 * scale_samp(kd->buffer[32 * y + x])
 			);
 
-            if( scale >= kd->scaleMax * 0.5 && rand() % 20 == 0) {
+            if( scale >= kd->scaleMax * 0.5 && rand() % 20 == 0 && kd->tog_jit) {
                 jitX = 1.0 * rand() / RAND_MAX;
                 jitX *= 2;
                 jitX -= 1;
