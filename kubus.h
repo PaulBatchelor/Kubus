@@ -20,6 +20,8 @@ int tog_jit;
 int tog_pulse;
 
 int sr;
+
+RtAudio *audio;
 } KubusData;
 
 void initGfx();

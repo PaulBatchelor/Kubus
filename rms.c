@@ -40,7 +40,7 @@ int sp_rms_init(int sr, sp_rms *p)
     b = 2.0 - cos((SPFLOAT)(p->ihp * (2.0 * M_PI / sr)));
     p->c2 = b - sqrt(b*b - 1.0);
     p->c1 = 1.0 - p->c2;
-    if (!p->istor) p->prvq = 0.0;
+    p->prvq = 0.0;
     return SP_OK;
 }
 

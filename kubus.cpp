@@ -50,6 +50,20 @@ using namespace std;
 
 KubusData g_data;
 
+void kubus_cleanup(KubusData *kd)
+{
+   
+    if( kd->audio->isStreamOpen() )
+    {
+        kd->audio->stopStream();
+        kd->audio->closeStream();
+    }
+    kiss_fftr_free(kd->cfg);
+	KISS_FFT_FREE(kd->fftbuf);
+    sp_rms_destroy(&kd->rms);
+    sp_port_destroy(&kd->port);
+}
+
 static int ini_handler(void* user, const char* section, const char* name,
                    const char* value)
 {
@@ -58,6 +72,18 @@ static int ini_handler(void* user, const char* section, const char* name,
     #define MATCH(s, n) strcmp(section, s) == 0 && strcmp(name, n) == 0
     if (MATCH("system", "sr")) {
         kd->sr = atoi(value);
+    }else if (MATCH("modes", "pulse")) {
+        kd->tog_pulse = atoi(value);
+    }else if (MATCH("modes", "jitter")) {
+        kd->tog_jit = atoi(value);
+    }else if (MATCH("modes", "fft")) {
+        kd->showFFT = atoi(value);
+    }else if (MATCH("visual", "scaleDefault")) {
+        kd->scaleDefault = atof(value);
+    }else if (MATCH("visual", "scaleMin")) {
+        kd->scaleMin = atof(value);
+    }else if (MATCH("visual", "scaleMax")) {
+        kd->scaleMax = atof(value);
     } else {
         return 0;  /* unknown section/name, error */
     }
@@ -89,23 +115,25 @@ void kubus_init(KubusData *kd)
     kd->scaleDefault = 2.0;
     kd->scale = kd->scaleMin;
     kd->scale = 3.0;
+    kd->sr = 44100;
 
-    sp_rms_create(&kd->rms);
-    sp_rms_init(MY_SRATE, kd->rms);
-    sp_port_create(&kd->port);
-    sp_port_init(MY_SRATE, kd->port, 0.01);
+
+    // set default toggles
+    kd->tog_jit = 1;
+    kd->tog_pulse = 1;
 
     //RNG seed
     srand(time(NULL));
 
     if (ini_parse("config.ini", ini_handler, kd) < 0) {
         printf("Can't load 'config.ini', using defaults\n");
-        kd->sr = MY_SRATE;
     }
+    
+    sp_rms_create(&kd->rms);
+    sp_rms_init(kd->sr, kd->rms);
+    sp_port_create(&kd->port);
+    sp_port_init(kd->sr, kd->port, 0.01);
 
-    // set default toggles
-    kd->tog_jit = 1;
-    kd->tog_pulse = 1;
 }
 
 //-----------------------------------------------------------------------------
@@ -150,7 +178,7 @@ int main( int argc, char ** argv )
     unsigned int bufferFrames = BUFSIZE;
     
     kubus_init(&g_data);
-
+    g_data.audio = &audio;
     // check for audio devices
     if( audio.getDeviceCount() < 1 )
     {
@@ -211,14 +239,15 @@ int main( int argc, char ** argv )
     }
     
 cleanup:
+    kubus_cleanup(&g_data);
     // close if open
-    if( audio.isStreamOpen() )
-        audio.closeStream();
+    //if( audio.isStreamOpen() )
+    //    audio.closeStream();
     // done
-    kiss_fftr_free(g_data.cfg);
-	KISS_FFT_FREE(g_data.fftbuf);
-    sp_rms_destroy(&g_data.rms);
-    sp_port_destroy(&g_data.port);
+    //kiss_fftr_free(g_data.cfg);
+	//KISS_FFT_FREE(g_data.fftbuf);
+    //sp_rms_destroy(&g_data.rms);
+    //sp_port_destroy(&g_data.port);
     return 0;
 }
 
@@ -285,6 +314,7 @@ void keyboardFunc( unsigned char key, int x, int y )
     {
         case 'Q':
         case 'q':
+            kubus_cleanup(&g_data);
             exit(1);
             break;
             
