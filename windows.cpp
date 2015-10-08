@@ -52,10 +52,10 @@ void hanning( float * window, unsigned long length )
 // name: apply_window()
 // desc: apply a window to data
 //-----------------------------------------------------------------------------
-void apply_window( float * data, float * window, unsigned long length )
+void apply_window( float * data, float *out, float * window, unsigned long length )
 {
     unsigned long i;
 
     for( i = 0; i < length; i++ )
-        data[i] *= window[i];
+        out[i] = data[i] * window[i];
 }

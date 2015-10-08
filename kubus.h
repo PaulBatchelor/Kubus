@@ -3,35 +3,32 @@
 #define cmp_abs(x) ( sqrt( (x).r * (x).r + (x).i * (x).i ) )
 
 typedef struct {
-    float color[3];
-    float x, y;
-} KSquare;
+float r, g, b;
+} KColor;
 
 typedef struct {
-long width;
-long height;
-SAMPLE *buffer;
-SAMPLE *window;
-long bufferSize;
-kiss_fftr_cfg cfg;
-kiss_fft_cpx *fftbuf;
-int showFFT;
-float scale;
-float scaleMax, scaleMin, scaleDefault;
-sp_rms *rms;
-sp_port *port;
+    long width;
+    long height;
+    SAMPLE *buffer;
+    SAMPLE *window;
+    SAMPLE *wbuffer;
+    long bufferSize;
+    kiss_fftr_cfg cfg;
+    kiss_fft_cpx *fftbuf;
+    int showFFT;
+    float scale;
+    float scaleMax, scaleMin, scaleDefault;
+    sp_rms *rms;
+    sp_port *port;
 
-int tog_jit;
-int tog_pulse;
+    int tog_jit;
+    int tog_pulse;
 
-float jit_thresh;
+    float jit_thresh;
 
-int sr;
+    int sr;
 
-void *audio;
-
-KSquare grid[1024];
-
+    void *audio;
 } KubusData;
 
 void initGfx();
@@ -42,9 +39,13 @@ void keyboardFunc( unsigned char, int, int );
 void mouseFunc( int button, int state, int x, int y );
 void hamming( float * window, unsigned long length );
 void hanning( float * window, unsigned long length );
-void apply_window( float * data, float * window, unsigned long length );
+void apply_window( float * data, float *out, float * window, unsigned long length );
 
 void kubus_draw(KubusData *kd);
 void kubus_init(KubusData *kd);
 void kubus_cleanup(KubusData *kd);
 
+void kcolor_set(KColor *clr, KColor *out);
+void kcolor_scale(KColor *clr, float scale);
+void kcolor_blend(KColor *clr1, KColor *clr2, KColor *out, float blend);
+void kcolor_color(KColor *clr);

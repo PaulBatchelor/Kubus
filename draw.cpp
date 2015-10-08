@@ -25,6 +25,24 @@ float scale_samp(float x)
 	//return 1.3 * log(x + 1);
     return s;
 }
+void kcolor_set(KColor *clr, KColor *out)
+{
+    out->r = clr->r;
+    out->g = clr->g;
+    out->b = clr->b;
+}
+
+void kcolor_scale(KColor *clr, float scale)
+{
+    clr->r = clr->r * scale;
+    clr->g = clr->g * scale;
+    clr->b = clr->b * scale;
+}
+
+void kcolor_color(KColor *clr)
+{
+    glColor3f(clr->r, clr->g, clr->b); 
+}
 
 static void draw_square(float x, float y, float scale) 
 {
@@ -36,6 +54,13 @@ static void draw_square(float x, float y, float scale)
     glEnd();
 }
 
+void kcolor_blend(KColor *clr1, KColor *clr2, KColor *out, float blend)
+{
+    out->r = (1.0 * blend * clr1->r) + ((1.0 - blend) * clr2->r);
+    out->g = (1.0 * blend * clr1->g) + ((1.0 - blend) * clr2->g);
+    out->b = (1.0 * blend * clr1->b) + ((1.0 - blend) * clr2->b);
+}
+
 void kubus_draw(KubusData *kd) 
 {
     // local state
@@ -44,6 +69,15 @@ void kubus_draw(KubusData *kd)
     // clear the color and depth buffers
     glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 	GLfloat scale;
+
+    KColor clr1, clr2, out;
+    clr1.r = 0.1607;
+    clr1.g = 0.6784;
+    clr1.b = 1;
+    
+    clr2.r = 1;
+    clr2.g = 0;
+    clr2.b = 0.3019;
 
     if(kd->tog_pulse) {
         scale = kd->scale;
@@ -58,40 +92,48 @@ void kubus_draw(KubusData *kd)
     // increment
     float slope = (scale - kd->scaleMin ) / (kd->scaleMax - kd->scaleMin);
     int x, y;
+    int binNum = 0;
 	// start primitive
     glColor3f( 1, 0, 0.3019 );
     GLfloat jitX = 0, jitY = 0;
-	if(kd->showFFT) {	
-        /* this makes the time domain look bad, fix */
-        apply_window(kd->buffer, kd->window, kd->bufferSize);
-		kiss_fftr(kd->cfg, kd->buffer, kd->fftbuf);
-		for( int i = 0; i < kd->bufferSize / 2; i++ )
-		{
-			glColor3f( 
-				1 * scale_samp(cmp_abs(kd->fftbuf[i])), 
-				0 * scale_samp(cmp_abs(kd->fftbuf[i])), 
-				0.3019 * scale_samp(cmp_abs(kd->fftbuf[i])) 
-			);
-			x = i % 16;
-			y = i / 16; 
-			draw_square(
-				(-1 + div + x * 2 * div) * scale, 
-				(-1 + div + (31 - y) * 2 * div ) * scale, 
-				div * scale); 
+	//if(kd->showFFT) {	
+    //    /* this makes the time domain look bad, fix */
+    //    apply_window(kd->buffer, kd->wbuffer, kd->window, kd->bufferSize);
+	//	kiss_fftr(kd->cfg, kd->wbuffer, kd->fftbuf);
+	//	for( int i = 0; i < kd->bufferSize; i++ )
+	//	{
+	//		x = i % 32;
+	//		y = i / 32; 
+    //        if(x % 2 == 0) binNum++;
+	//		glColor3f( 
+	//			1 * scale_samp(cmp_abs(kd->fftbuf[binNum])), 
+	//			0 * scale_samp(cmp_abs(kd->fftbuf[binNum])), 
+	//			0.3019 * scale_samp(cmp_abs(kd->fftbuf[binNum])) 
+	//		);
+	//		draw_square(
+	//			(-1 + div + x * 2 * div) * scale, 
+	//			(-1 + div + (31 - y) * 2 * div ) * scale, 
+	//			div * scale); 
 
-		}
-	}
-    
+	//	}
+	//}
+   
+    binNum = 0; 
+    apply_window(kd->buffer, kd->wbuffer, kd->window, kd->bufferSize);
+    kiss_fftr(kd->cfg, kd->wbuffer, kd->fftbuf);
     for(int i = 0; i < kd->bufferSize; i++) {
         x = i % 32;
         y = i / 32; 
-
-        glColor3f( 
-            0.1607 * scale_samp(kd->buffer[32 * y + x]), 
-            0.6784 * scale_samp(kd->buffer[32 * y + x]), 
-            1 * scale_samp(kd->buffer[32 * y + x])
-        );
-    
+        if(x % 2 == 0) binNum++; 
+        //glColor3f( 
+        //    0.1607 * scale_samp(kd->buffer[32 * y + x]), 
+        //    0.6784 * scale_samp(kd->buffer[32 * y + x]), 
+        //    1 * scale_samp(kd->buffer[32 * y + x])
+        //);
+        kcolor_set(&clr1, &out); 
+        kcolor_blend(&clr1, &clr2, &out, scale_samp(cmp_abs(kd->fftbuf[binNum])));
+        kcolor_scale(&out, scale_samp(kd->buffer[32 * y + x]));
+        kcolor_color(&out);
 
         if( scale >= kd->scaleMax * kd->jit_thresh && rand() % 20 == 0 && kd->tog_jit ) {
             jitX = 1.0 * rand() / RAND_MAX;
@@ -104,13 +146,6 @@ void kubus_draw(KubusData *kd)
             jitY = scale * jitY * slope;
         }
 
-        //kd->grid[i].color[0] = 0.1607 * scale_samp(kd->buffer[32 * y + x]);
-        //kd->grid[i].color[1] = 0.6784 * scale_samp(kd->buffer[32 * y + x]);
-        //kd->grid[i].color[2] = 1 * scale_samp(kd->buffer[32 * y + x]);
-
-        
-        //kd->grid[i].x = ((-1 + div + x * 2 * div) + jitX) * scale;
-        //kd->grid[i].y = ((-1 + div + (31 - y) * 2 * div) + jitY) * scale; 
 
         draw_square(
             ((-1 + div + x * 2 * div) + jitX) * scale, 
@@ -118,20 +153,6 @@ void kubus_draw(KubusData *kd)
             div * scale); 
 	}
 
-    //for(int i = 0; i < kd->bufferSize; i++) {
-    //    glColor3f( 
-    //        kd->grid[i].color[0], 
-    //        kd->grid[i].color[1], 
-    //        kd->grid[i].color[2]
-    //    );
-    //    draw_square(kd->grid[i].x, kd->grid[i].y, scale);
-    //}
-
-    
-    // end primitive
-
-    // flush!
     glFlush( );
-    // swap the double buffer
     glutSwapBuffers( );
 }

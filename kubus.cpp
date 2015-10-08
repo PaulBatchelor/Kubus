@@ -98,7 +98,8 @@ void kubus_init(KubusData *kd)
     // compute
     // allocate global buffer
     kd->bufferSize = BUFSIZE;
-    kd->buffer = new SAMPLE[g_data.bufferSize];
+    kd->buffer = new SAMPLE[kd->bufferSize];
+    kd->wbuffer = new SAMPLE[kd->bufferSize];
     memset( kd->buffer, 0, sizeof(SAMPLE)*BUFSIZE);
 
 	// FFT init
