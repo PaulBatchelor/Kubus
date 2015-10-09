@@ -15,6 +15,7 @@ using namespace std;
 #include <string.h>
 #endif
 
+#include "hsl.h"
 #include "port.h"
 #include "rms.h"
 #include "kubus.h"
@@ -34,9 +35,48 @@ void kcolor_set(KColor *clr, KColor *out)
 
 void kcolor_scale(KColor *clr, float scale)
 {
-    clr->r = clr->r * scale;
-    clr->g = clr->g * scale;
-    clr->b = clr->b * scale;
+    float h, s, l;
+    float rgb[3];
+    rgb[0] = clr->r * 255;
+    rgb[1] = clr->g * 255;
+    rgb[2] = clr->b * 255;
+
+    h = get_hue(rgb[0], rgb[1], rgb[2]);
+    s = get_saturation(rgb[0], rgb[1], rgb[2]);
+    l = get_lightness(rgb[0], rgb[1], rgb[2]);
+    
+    h = (scale * 360);
+    l *= scale;
+
+    HSL_to_rgb(h, s, l, rgb);
+
+    clr->r = rgb[0];
+    clr->g = rgb[1];
+    clr->b = rgb[2];
+}
+
+void kcolor_fft(KColor *clr, float scale)
+{
+    float h, s, l;
+    float rgb[3];
+
+    if(scale > 1) scale = 1;
+    rgb[0] = clr->r * 255;
+    rgb[1] = clr->g * 255;
+    rgb[2] = clr->b * 255;
+
+    h = get_hue(rgb[0], rgb[1], rgb[2]);
+    s = get_saturation(rgb[0], rgb[1], rgb[2]);
+    l = get_lightness(rgb[0], rgb[1], rgb[2]);
+
+
+    s *= scale;
+    
+    HSL_to_rgb(h, s, l, rgb);
+
+    clr->r = rgb[0];
+    clr->g = rgb[1];
+    clr->b = rgb[2];
 }
 
 void kcolor_color(KColor *clr)
@@ -56,10 +96,11 @@ static void draw_square(float x, float y, float scale)
 
 void kcolor_blend(KColor *clr1, KColor *clr2, KColor *out, float blend)
 {
-    out->r = (1.0 * blend * clr1->r) + ((1.0 - blend) * clr2->r);
-    out->g = (1.0 * blend * clr1->g) + ((1.0 - blend) * clr2->g);
-    out->b = (1.0 * blend * clr1->b) + ((1.0 - blend) * clr2->b);
+    out->r = (1.0 * blend * clr2->r) + ((1.0 - blend) * clr1->r);
+    out->g = (1.0 * blend * clr2->g) + ((1.0 - blend) * clr1->g);
+    out->b = (1.0 * blend * clr2->b) + ((1.0 - blend) * clr1->b);
 }
+
 
 void kubus_draw(KubusData *kd) 
 {
@@ -94,45 +135,23 @@ void kubus_draw(KubusData *kd)
     int x, y;
     int binNum = 0;
 	// start primitive
-    glColor3f( 1, 0, 0.3019 );
     GLfloat jitX = 0, jitY = 0;
-	//if(kd->showFFT) {	
-    //    /* this makes the time domain look bad, fix */
-    //    apply_window(kd->buffer, kd->wbuffer, kd->window, kd->bufferSize);
-	//	kiss_fftr(kd->cfg, kd->wbuffer, kd->fftbuf);
-	//	for( int i = 0; i < kd->bufferSize; i++ )
-	//	{
-	//		x = i % 32;
-	//		y = i / 32; 
-    //        if(x % 2 == 0) binNum++;
-	//		glColor3f( 
-	//			1 * scale_samp(cmp_abs(kd->fftbuf[binNum])), 
-	//			0 * scale_samp(cmp_abs(kd->fftbuf[binNum])), 
-	//			0.3019 * scale_samp(cmp_abs(kd->fftbuf[binNum])) 
-	//		);
-	//		draw_square(
-	//			(-1 + div + x * 2 * div) * scale, 
-	//			(-1 + div + (31 - y) * 2 * div ) * scale, 
-	//			div * scale); 
-
-	//	}
-	//}
-   
     binNum = 0; 
     apply_window(kd->buffer, kd->wbuffer, kd->window, kd->bufferSize);
     kiss_fftr(kd->cfg, kd->wbuffer, kd->fftbuf);
     for(int i = 0; i < kd->bufferSize; i++) {
         x = i % 32;
         y = i / 32; 
-        if(x % 2 == 0) binNum++; 
-        //glColor3f( 
-        //    0.1607 * scale_samp(kd->buffer[32 * y + x]), 
-        //    0.6784 * scale_samp(kd->buffer[32 * y + x]), 
-        //    1 * scale_samp(kd->buffer[32 * y + x])
-        //);
-        kcolor_set(&clr1, &out); 
-        kcolor_blend(&clr1, &clr2, &out, scale_samp(cmp_abs(kd->fftbuf[binNum])));
-        kcolor_scale(&out, scale_samp(kd->buffer[32 * y + x]));
+        if(x % 2 == 0) { 
+            binNum++;
+            binNum %= 128;   
+        } 
+        kcolor_set(&clr2, &out); 
+        //kcolor_scale(&out, scale_samp(kd->buffer[32 * y + x]));
+        kcolor_scale(&out, kd->buffer[32 * y + x]);
+        if(kd->showFFT) {
+            kcolor_fft(&out,  0.2 * cmp_abs(kd->fftbuf[binNum]));
+        }
         kcolor_color(&out);
 
         if( scale >= kd->scaleMax * kd->jit_thresh && rand() % 20 == 0 && kd->tog_jit ) {

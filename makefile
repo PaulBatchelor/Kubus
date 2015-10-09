@@ -15,7 +15,7 @@ FLAGS=-D__UNIX_JACK__ -c
 LIBS= -ljack -lGL -lGLU -lglut -lstdc++ -lm -lpthread
 endif
 
-OBJS= RtAudio.o kubus.o draw.o windows.o rms.o port.o inih/ini.o
+OBJS= RtAudio.o kubus.o hsl.o draw.o windows.o rms.o port.o inih/ini.o 
 
 RMS_FLAGS=-DSPFLOAT=float -DSP_OK=1 -DSP_NOT_OK=0 
 CFLAGS=$(RMS_FLAGS) -c -lm
