@@ -20,15 +20,22 @@ typedef struct {
     float scaleMax, scaleMin, scaleDefault;
     sp_rms *rms;
     sp_port *port;
+    /* skip upper bins and wrap */
+    int fftWrap;
 
     int tog_jit;
     int tog_pulse;
+    int tog_8bit;
+    int tog_rainbow;
+    int tog_amp;
 
     float jit_thresh;
 
     int sr;
 
     void *audio;
+
+    KColor clr;
 } KubusData;
 
 void initGfx();
@@ -46,6 +53,6 @@ void kubus_init(KubusData *kd);
 void kubus_cleanup(KubusData *kd);
 
 void kcolor_set(KColor *clr, KColor *out);
-void kcolor_scale(KColor *clr, float scale);
+void kcolor_scale(KColor *clr, float scale, int rainbows);
 void kcolor_blend(KColor *clr1, KColor *clr2, KColor *out, float blend);
 void kcolor_color(KColor *clr);

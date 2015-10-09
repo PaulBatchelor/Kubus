@@ -33,10 +33,16 @@ void kcolor_set(KColor *clr, KColor *out)
     out->b = clr->b;
 }
 
-void kcolor_scale(KColor *clr, float scale)
+void kcolor_scale(KColor *clr, float scale, int rainbows)
 {
+    if(rainbows) {
+        HSVtoRGB(&clr->r, &clr->g, &clr->b, scale * 360, 1, 1);
+        return;
+    }
+
     float h, s, l;
     float rgb[3];
+
     rgb[0] = clr->r * 255;
     rgb[1] = clr->g * 255;
     rgb[2] = clr->b * 255;
@@ -44,8 +50,7 @@ void kcolor_scale(KColor *clr, float scale)
     h = get_hue(rgb[0], rgb[1], rgb[2]);
     s = get_saturation(rgb[0], rgb[1], rgb[2]);
     l = get_lightness(rgb[0], rgb[1], rgb[2]);
-    
-    h = (scale * 360);
+   
     l *= scale;
 
     HSL_to_rgb(h, s, l, rgb);
@@ -53,6 +58,7 @@ void kcolor_scale(KColor *clr, float scale)
     clr->r = rgb[0];
     clr->g = rgb[1];
     clr->b = rgb[2];
+    
 }
 
 void kcolor_fft(KColor *clr, float scale)
@@ -111,14 +117,7 @@ void kubus_draw(KubusData *kd)
     glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 	GLfloat scale;
 
-    KColor clr1, clr2, out;
-    clr1.r = 0.1607;
-    clr1.g = 0.6784;
-    clr1.b = 1;
-    
-    clr2.r = 1;
-    clr2.g = 0;
-    clr2.b = 0.3019;
+    KColor out;
 
     if(kd->tog_pulse) {
         scale = kd->scale;
@@ -144,11 +143,16 @@ void kubus_draw(KubusData *kd)
         y = i / 32; 
         if(x % 2 == 0) { 
             binNum++;
-            binNum %= 128;   
+            binNum %= kd->fftWrap;   
         } 
-        kcolor_set(&clr2, &out); 
-        //kcolor_scale(&out, scale_samp(kd->buffer[32 * y + x]));
-        kcolor_scale(&out, kd->buffer[32 * y + x]);
+        kcolor_set(&kd->clr, &out); 
+
+        if(kd->tog_8bit) {
+            kcolor_scale(&out, scale_samp(kd->buffer[32 * y + x]), kd->tog_rainbow);
+        } else {
+            kcolor_scale(&out, kd->buffer[32 * y + x], kd->tog_rainbow);
+        }
+
         if(kd->showFFT) {
             kcolor_fft(&out,  0.2 * cmp_abs(kd->fftbuf[binNum]));
         }
@@ -164,7 +168,6 @@ void kubus_draw(KubusData *kd)
             jitY -= 1;
             jitY = scale * jitY * slope;
         }
-
 
         draw_square(
             ((-1 + div + x * 2 * div) + jitX) * scale, 

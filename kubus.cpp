@@ -78,6 +78,10 @@ static int ini_handler(void* user, const char* section, const char* name,
         kd->tog_jit = atoi(value);
     }else if (MATCH("modes", "fft")) {
         kd->showFFT = atoi(value);
+    }else if (MATCH("modes", "rainbow")) {
+        kd->tog_rainbow= atoi(value);
+    }else if (MATCH("modes", "8bit")) {
+        kd->tog_8bit = atoi(value);
     }else if (MATCH("visual", "scaleDefault")) {
         kd->scaleDefault = atof(value);
     }else if (MATCH("visual", "scaleMin")) {
@@ -86,6 +90,14 @@ static int ini_handler(void* user, const char* section, const char* name,
         kd->scaleMax = atof(value);
     }else if (MATCH("visual", "jit_thresh")) {
         kd->jit_thresh = atof(value);
+    }else if (MATCH("visual", "fftWrap")) {
+        kd->fftWrap = atoi(value);
+    }else if (MATCH("visual", "color_r")) {
+        kd->clr.r= atof(value) / 255.0;
+    }else if (MATCH("visual", "color_g")) {
+        kd->clr.g= atof(value) / 255.0;
+    }else if (MATCH("visual", "color_b")) {
+        kd->clr.b= atof(value) / 255.0;
     } else {
         return 0;  /* unknown section/name, error */
     }
@@ -95,7 +107,6 @@ static int ini_handler(void* user, const char* section, const char* name,
 
 void kubus_init(KubusData *kd)
 {
-    // compute
     // allocate global buffer
     kd->bufferSize = BUFSIZE;
     kd->buffer = new SAMPLE[kd->bufferSize];
@@ -104,13 +115,11 @@ void kubus_init(KubusData *kd)
 
 	// FFT init
 	kd->cfg = kiss_fftr_alloc(FFTSIZE, 0, NULL, NULL);
-
 	kd->fftbuf = (kiss_fft_cpx *) KISS_FFT_MALLOC(sizeof(float) * FFTSIZE);	
-   
-	kd->showFFT = 0; 
 	kd->window  = new SAMPLE[BUFSIZE];
     memset( kd->window , 0, sizeof(SAMPLE)*kd->bufferSize );
 	hanning(kd->window, BUFSIZE);
+    kd->fftWrap = 128;
 
     // set scale
     kd->scaleMax = 3.0;
@@ -121,10 +130,21 @@ void kubus_init(KubusData *kd)
     kd->sr = 44100;
     kd->jit_thresh = 0.5;
 
+    // Set default color
+    kd->clr.r = 0.1607;
+    kd->clr.g = 0.6784;
+    kd->clr.b = 1;
 
     // set default toggles
+	kd->showFFT = 0; 
     kd->tog_jit = 1;
     kd->tog_pulse = 1;
+    /* downsamples input signal */
+    kd->tog_8bit = 1;
+    /* time-signal modifies hue */
+    kd->tog_rainbow = 0;
+    /* time-signal modifies lightness */
+    kd->tog_amp = 1;
 
     //RNG seed
     srand(time(NULL));
@@ -331,7 +351,13 @@ void keyboardFunc( unsigned char key, int x, int y )
             g_data.tog_pulse = (g_data.tog_pulse == 1) ? 0 : 1;
             break;
         case 'j':
-            g_data.tog_jit= (g_data.tog_jit == 1) ? 0 : 1;
+            g_data.tog_jit = (g_data.tog_jit == 1) ? 0 : 1;
+            break;
+        case 'b':
+            g_data.tog_8bit = (g_data.tog_8bit== 1) ? 0 : 1;
+            break;
+        case 'r':
+            g_data.tog_rainbow = (g_data.tog_rainbow == 1) ? 0 : 1;
             break;
         default:
             break;
