@@ -26,8 +26,6 @@ using namespace std;
 
 #include "RtAudio.h"
 
-#include "rms.h"
-#include "port.h"
 #include "kubus.h"
 #include "inih/ini.h"
 
@@ -62,6 +60,8 @@ void kubus_cleanup(KubusData *kd)
 	KISS_FFT_FREE(kd->fftbuf);
     sp_rms_destroy(&kd->rms);
     sp_port_destroy(&kd->port);
+    sp_rms_destroy(&kd->rms_bp);
+    sp_butbp_destroy(&kd->bp);
 }
 
 static int ini_handler(void* user, const char* section, const char* name,
@@ -70,8 +70,16 @@ static int ini_handler(void* user, const char* section, const char* name,
     KubusData* kd = (KubusData *)user;
 
     #define MATCH(s, n) strcmp(section, s) == 0 && strcmp(name, n) == 0
-    if (MATCH("system", "sr")) {
+    if (MATCH("audio", "sr")) {
         kd->sr = atoi(value);
+    }else if (MATCH("audio", "gain")) {
+        kd->gain = atof(value);
+    }else if (MATCH("audio", "bp_freq")) {
+        kd->bp_freq = atof(value);
+    }else if (MATCH("audio", "bp_bw")) {
+        kd->bp_bw = atof(value);
+    }else if (MATCH("audio", "bp_gain")) {
+        kd->bp_gain = atof(value);
     }else if (MATCH("modes", "pulse")) {
         kd->tog_pulse = atoi(value);
     }else if (MATCH("modes", "jitter")) {
@@ -98,6 +106,8 @@ static int ini_handler(void* user, const char* section, const char* name,
         kd->clr.g= atof(value) / 255.0;
     }else if (MATCH("visual", "color_b")) {
         kd->clr.b= atof(value) / 255.0;
+    }else if (MATCH("visual", "inertia")) {
+        kd->inertia = atof(value);
     } else {
         return 0;  /* unknown section/name, error */
     }
@@ -127,6 +137,7 @@ void kubus_init(KubusData *kd)
     kd->scaleDefault = 2.0;
     kd->scale = kd->scaleMin;
     kd->scale = 3.0;
+    kd->scale_bp = 0;
     kd->sr = 44100;
     kd->jit_thresh = 0.5;
 
@@ -146,6 +157,18 @@ void kubus_init(KubusData *kd)
     /* time-signal modifies lightness */
     kd->tog_amp = 1;
 
+
+    /* Input gain */
+    kd->gain = 1;
+
+    /* inertia of pulses */
+    kd->inertia = 0.01;
+
+    /* bandpass for jitter */
+    kd->bp_bw = 10;
+    kd->bp_freq = 300;
+    kd->bp_gain = 4;
+
     //RNG seed
     srand(time(NULL));
 
@@ -156,8 +179,15 @@ void kubus_init(KubusData *kd)
     sp_rms_create(&kd->rms);
     sp_rms_init(kd->sr, kd->rms);
     sp_port_create(&kd->port);
-    sp_port_init(kd->sr, kd->port, 0.01);
+    sp_port_init(kd->sr, kd->port, kd->inertia);
+    
+    sp_rms_create(&kd->rms_bp);
+    sp_rms_init(kd->sr, kd->rms_bp);
 
+    sp_butbp_create(&kd->bp);
+    sp_butbp_init(kd->sr, kd->bp);
+    kd->bp->freq = kd->bp_freq;
+    kd->bp->bw = kd->bp_bw;
 }
 
 //-----------------------------------------------------------------------------
@@ -172,15 +202,21 @@ int callme( void * outputBuffer, void * inputBuffer, unsigned int numFrames,
     // cast!
     SAMPLE * input = (SAMPLE *)inputBuffer;
     SAMPLE * output = (SAMPLE *)outputBuffer;
-    float rms = 0, port = 0; 
+    float rms = 0, port = 0, bp = 0, rms_bp; 
     // fill
     for( int i = 0; i < numFrames; i++ )
     {
         // assume mono
-        g_data.buffer[i] = input[i];
+        g_data.buffer[i] = input[i] * kd->gain;
         sp_rms_compute(kd->rms, &g_data.buffer[i], &rms);
         sp_port_compute(kd->port, &rms, &port);
+
+        sp_butbp_compute(kd->bp, &g_data.buffer[i], &bp);
+        bp *= pow(10, kd->bp_gain / 10.0);
+        sp_rms_compute(kd->rms_bp, &bp, &rms_bp);
+
         kd->scale = kd->scaleMin  + (kd->scaleMax - kd->scaleMin) * port;
+        kd->scale_bp = rms_bp; 
         // zero output
         output[i] = 0;
     }

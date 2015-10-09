@@ -1,24 +1,24 @@
 [audio]
 sr = 96000
-gain = 2
+gain = 1
 bp_freq = 4000
 bp_gain = 10.0
 bp_bw = 100
 
 [modes]
-pulse = 1
+pulse = 0
 jitter = 1
 fft = 1
 rainbow = 0
-8bit = 1
+8bit = 0
 
 [visual]
 scaleDefault = 2.0
 scaleMin = 1.0
 scaleMax = 3.0
-jit_thresh =  0.2
+jit_thresh =  0.1
 fftWrap = 128
-color_r = 255
-color_g = 8
-color_b = 0
+color_r = 143
+color_g = 254
+color_b = 9
 inertia = 0.01

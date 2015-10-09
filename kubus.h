@@ -1,3 +1,6 @@
+#include "rms.h"
+#include "butbp.h"
+#include "port.h"
 #include "kissfft/kiss_fftr.h"
 #define SAMPLE float
 #define cmp_abs(x) ( sqrt( (x).r * (x).r + (x).i * (x).i ) )
@@ -19,7 +22,15 @@ typedef struct {
     float scale;
     float scaleMax, scaleMin, scaleDefault;
     sp_rms *rms;
+
+    sp_rms *rms_bp;
+    sp_butbp *bp; 
+    float bp_freq, bp_bw, bp_gain;
+    float scale_bp;
+
     sp_port *port;
+    float inertia;
+
     /* skip upper bins and wrap */
     int fftWrap;
 
@@ -34,8 +45,10 @@ typedef struct {
     int sr;
 
     void *audio;
-
     KColor clr;
+
+    float gain;
+
 } KubusData;
 
 void initGfx();

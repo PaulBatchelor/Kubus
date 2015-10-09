@@ -16,8 +16,6 @@ using namespace std;
 #endif
 
 #include "hsl.h"
-#include "port.h"
-#include "rms.h"
 #include "kubus.h"
 
 float scale_samp(float x) 
@@ -117,6 +115,7 @@ void kubus_draw(KubusData *kd)
     glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 	GLfloat scale;
 
+
     KColor out;
 
     if(kd->tog_pulse) {
@@ -124,7 +123,7 @@ void kubus_draw(KubusData *kd)
     } else {
         scale = kd->scaleDefault;
     }
-
+    
 	GLfloat div = 1.0 / 32;
     // line width
     glLineWidth( 1.0 );
@@ -158,7 +157,7 @@ void kubus_draw(KubusData *kd)
         }
         kcolor_color(&out);
 
-        if( scale >= kd->scaleMax * kd->jit_thresh && rand() % 20 == 0 && kd->tog_jit ) {
+        if( kd->scale_bp >= kd->jit_thresh && rand() % 20 == 0 && kd->tog_jit ) {
             jitX = 1.0 * rand() / RAND_MAX;
             jitX *= 2;
             jitX -= 1;
