@@ -196,10 +196,6 @@ void kubus_init(KubusData *kd)
     kd->bp->bw = kd->bp_bw;
 }
 
-//-----------------------------------------------------------------------------
-// name: callme()
-// desc: audio callback
-//-----------------------------------------------------------------------------
 int callme( void * outputBuffer, void * inputBuffer, unsigned int numFrames,
             double streamTime, RtAudioStreamStatus status, void * data )
 {
@@ -230,17 +226,9 @@ int callme( void * outputBuffer, void * inputBuffer, unsigned int numFrames,
     return 0;
 }
 
-
-//-----------------------------------------------------------------------------
-// name: main()
-// desc: entry point
-//-----------------------------------------------------------------------------
 int main( int argc, char ** argv )
 {
-    // instantiate RtAudio object
     RtAudio audio;
-    // variables
-    // frame size
     unsigned int bufferFrames = BUFSIZE;
     
     if(argc > 1) {
@@ -254,23 +242,17 @@ int main( int argc, char ** argv )
     g_data.audio = &audio;
 
 
-    // check for audio devices
     if( audio.getDeviceCount() < 1 )
     {
-        // nopes
         cout << "no audio devices found!" << endl;
         exit( 1 );
     }
     
-    // initialize GLUT
     glutInit( &argc, argv );
-    // init gfx
     initGfx();
     
-    // let RtAudio print messages to stderr.
     audio.showWarnings( true );
     
-    // set input and output parameters
     RtAudio::StreamParameters iParams, oParams;
     iParams.deviceId = audio.getDefaultInputDevice();
     iParams.nChannels = MY_CHANNELS;
@@ -279,17 +261,13 @@ int main( int argc, char ** argv )
     oParams.nChannels = MY_CHANNELS;
     oParams.firstChannel = 0;
     
-    // create stream options
     RtAudio::StreamOptions options;
     
-    // go for it
     try {
-        // open a stream
         audio.openStream( &oParams, &iParams, MY_FORMAT, g_data.sr, &bufferFrames, &callme, &g_data, &options );
     }
     catch( RtError& e )
     {
-        // error!
         cout << e.getMessage() << endl;
         exit( 1 );
     }
@@ -315,14 +293,6 @@ int main( int argc, char ** argv )
     
 cleanup:
     kubus_cleanup(&g_data);
-    // close if open
-    //if( audio.isStreamOpen() )
-    //    audio.closeStream();
-    // done
-    //kiss_fftr_free(g_data.cfg);
-	//KISS_FFT_FREE(g_data.fftbuf);
-    //sp_rms_destroy(&g_data.rms);
-    //sp_port_destroy(&g_data.port);
     return 0;
 }
 
@@ -451,7 +421,6 @@ void mouseFunc( int button, int state, int x, int y )
 
 void idleFunc( )
 {
-    // render the scene
     glutPostRedisplay( );
 }
 

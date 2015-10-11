@@ -11,6 +11,15 @@ Larger resolution screenshots: [1](screenshots/aphex.png)
 Kubus is a minimalist audio visualizer, written in C/C++ using OpenGL and RtAudio. 
 The aesthetic of Kubus draws inspiration from artists like Ryoji Ikeda and Viznut.
 
+Audio input is buffered into Kubus 1024 samples at a time, where it is sequentially
+mapped onto a 32 x 32 grid of squares. The amplitude of each particular sample
+controls the square color's lightness at that point in time. If FFT mode is enabled,
+the FFT bins are mapped onto the grid as well, controlling the saturation level of
+the squares. 
+
+See the Usage section for more details about the different modes and functionality
+of Kubus.
+
 ## Compilation
 
 Kubus has been tested on OSX and Linux. You will need GLUT in order to compile.

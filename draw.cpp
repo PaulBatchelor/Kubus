@@ -108,10 +108,8 @@ void kcolor_blend(KColor *clr1, KColor *clr2, KColor *out, float blend)
 
 void kubus_draw(KubusData *kd) 
 {
-    // local state
     static GLfloat zrot = 0.0f, c = 0.0f;
     
-    // clear the color and depth buffers
     glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 	GLfloat scale;
 
@@ -125,14 +123,10 @@ void kubus_draw(KubusData *kd)
     }
     
 	GLfloat div = 1.0 / 32;
-    // line width
     glLineWidth( 1.0 );
-    // define a starting point
-    // increment
     float slope = (scale - kd->scaleMin ) / (kd->scaleMax - kd->scaleMin);
     int x, y;
     int binNum = 0;
-	// start primitive
     GLfloat jitX = 0, jitY = 0;
     binNum = 0; 
     apply_window(kd->buffer, kd->wbuffer, kd->window, kd->bufferSize);
@@ -149,7 +143,7 @@ void kubus_draw(KubusData *kd)
         if(kd->tog_8bit) {
             kcolor_scale(&out, scale_samp(kd->buffer[32 * y + x]), kd->tog_rainbow);
         } else {
-            kcolor_scale(&out, kd->buffer[32 * y + x], kd->tog_rainbow);
+            kcolor_scale(&out, fabs(kd->buffer[32 * y + x]), kd->tog_rainbow);
         }
 
         if(kd->showFFT) {
