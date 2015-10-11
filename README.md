@@ -34,6 +34,8 @@ make
 
 After compilation, Kubus can be invoked from the commandline by running "./kubus".
 
+Hitting "Q" will quit.
+
 There are a number of modes that can be toggled with keystroke commands:
 
 **FFT mode (f):**

@@ -48,6 +48,17 @@ using namespace std;
 
 KubusData g_data;
 
+static void print_help()
+{
+cerr << "Keyboard controls: " << endl;
+cerr << "\t 'q' : Quit" << endl;
+cerr << "\t 'f' : FFT mode" << endl;
+cerr << "\t 'p' : Pulsate mode" << endl;
+cerr << "\t 'j' : Jitter mode" << endl;
+cerr << "\t 'b' : Bitcrushed colors" << endl;
+cerr << "\t 'r' : Rainbow mode!" << endl;
+}
+
 void kubus_cleanup(KubusData *kd)
 {
     RtAudio *audio = (RtAudio *) kd->audio; 
@@ -272,6 +283,9 @@ int main( int argc, char ** argv )
         exit( 1 );
     }
    
+
+    // Display controls
+    print_help();
 
     // go for it
     try {
