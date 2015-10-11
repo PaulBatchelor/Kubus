@@ -1,4 +1,4 @@
-./kubus &
+./kubus config.ini &
 #chuck sine.ck &
 sleep 1
 PID=$(jack_lsp | grep -i mplayer | grep out_0 | cut -d ' ' -f 2 | cut -d ':' -f 1)

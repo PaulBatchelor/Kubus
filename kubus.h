@@ -49,6 +49,9 @@ typedef struct {
 
     float gain;
 
+    /* custom config file */
+    char *config;
+    int useConfig;
 } KubusData;
 
 void initGfx();

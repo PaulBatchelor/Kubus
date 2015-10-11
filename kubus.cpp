@@ -172,8 +172,14 @@ void kubus_init(KubusData *kd)
     //RNG seed
     srand(time(NULL));
 
-    if (ini_parse("config.ini", ini_handler, kd) < 0) {
-        printf("Can't load 'config.ini', using defaults\n");
+    if(kd->useConfig) {
+        if (ini_parse(kd->config, ini_handler, kd) < 0) {
+            printf("Can't load '%s'\n", kd->config);
+        }
+    } else {
+        if (ini_parse("config.ini", ini_handler, kd) < 0) {
+            printf("Can't load 'config.ini', using defaults\n");
+        }
     }
     
     sp_rms_create(&kd->rms);
@@ -237,8 +243,17 @@ int main( int argc, char ** argv )
     // frame size
     unsigned int bufferFrames = BUFSIZE;
     
+    if(argc > 1) {
+        g_data.useConfig = 1;
+        g_data.config = argv[1];
+    } else {
+        g_data.useConfig = 0;
+    }
+    
     kubus_init(&g_data);
     g_data.audio = &audio;
+
+
     // check for audio devices
     if( audio.getDeviceCount() < 1 )
     {
