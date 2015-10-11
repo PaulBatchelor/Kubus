@@ -8,6 +8,8 @@ int my_max(int r, int g, int b)
     if (g > r && g > b) return g;
     else
     if (b > r && b > g) return b;
+    else
+    if(r == b && b == g) return r;
     return 0;
 }
 
@@ -18,6 +20,8 @@ int my_min(int r, int g, int b)
     if (g < r && g < b) return g;
     else
     if (b < r && b < g) return b;
+    else
+    if(r == b && b == g) return r;
     return 0;
 }
 
@@ -168,9 +172,11 @@ void HSVtoRGB( float *r, float *g, float *b, float h, float s, float v )
 
 }
 
-/*
+#ifdef DEBUG_HSL
+
 int main() {
-    int r = 145, g = 200, b = 47;
+    //int r = 145, g = 200, b = 47;
+    //int r = 255, g = 255, b = 255;
 
     float h = 82, s = 62, l = 48;
 
@@ -192,4 +198,5 @@ int main() {
 
     return 0;
 }
-*/
+
+#endif

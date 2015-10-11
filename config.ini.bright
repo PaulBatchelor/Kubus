@@ -7,18 +7,18 @@ bp_bw = 100
 
 [modes]
 pulse = 1
-jitter = 0
-fft = 0
+jitter = 1
+fft = 1
 rainbow = 0
 8bit = 0
 
 [visual]
 scaleDefault = 2.0
-scaleMin = 2.0
+scaleMin = 1.0
 scaleMax = 3.0
-jit_thresh =  0.2
+jit_thresh =  0.1
 fftWrap = 128
-color_r = 0
-color_g = 128
-color_b = 128
-inertia = 0.4
+color_r = 255
+color_g = 255
+color_b = 255
+inertia = 0.01

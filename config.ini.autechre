@@ -8,7 +8,7 @@ bp_bw = 100
 [modes]
 pulse = 1
 jitter = 1
-fft = 1
+fft = 0
 rainbow = 0
 8bit = 1
 
