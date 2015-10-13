@@ -45,7 +45,7 @@ There are a number of modes that can be toggled with keystroke commands:
 
 **FFT mode (f):**
 
-Maps strength of FFT bins to color saturation of the squares.
+Turns on fft visualizer.
 
 **Jitter mode (j):**
 
