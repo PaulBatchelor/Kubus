@@ -4,6 +4,8 @@
 #include "kissfft/kiss_fftr.h"
 #define SAMPLE float
 #define cmp_abs(x) ( sqrt( (x).r * (x).r + (x).i * (x).i ) )
+#define FFT_HIST 64
+
 
 typedef struct {
 float r, g, b;
@@ -15,9 +17,13 @@ typedef struct {
     SAMPLE *buffer;
     SAMPLE *window;
     SAMPLE *wbuffer;
+
     long bufferSize;
     kiss_fftr_cfg cfg;
     kiss_fft_cpx *fftbuf;
+    //kiss_fft_cpx **fftblock;
+    kiss_fft_cpx *fftblock[FFT_HIST];
+    int fftblock_pos[FFT_HIST];
     int showFFT;
     float scale;
     float scaleMax, scaleMin, scaleDefault;
@@ -72,3 +78,4 @@ void kcolor_set(KColor *clr, KColor *out);
 void kcolor_scale(KColor *clr, float scale, int rainbows);
 void kcolor_blend(KColor *clr1, KColor *clr2, KColor *out, float blend);
 void kcolor_color(KColor *clr);
+

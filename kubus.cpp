@@ -69,10 +69,17 @@ void kubus_cleanup(KubusData *kd)
     }
     kiss_fftr_free(kd->cfg);
 	KISS_FFT_FREE(kd->fftbuf);
+    for(int i = 0; i < FFT_HIST; i++) {
+        KISS_FFT_FREE(kd->fftblock[i]);
+    }
     sp_rms_destroy(&kd->rms);
     sp_port_destroy(&kd->port);
     sp_rms_destroy(&kd->rms_bp);
     sp_butbp_destroy(&kd->bp);
+    delete kd->buffer;
+    delete kd->window;
+    delete kd->wbuffer;
+    //free(kd->fftblock);
 }
 
 static int ini_handler(void* user, const char* section, const char* name,
@@ -137,10 +144,16 @@ void kubus_init(KubusData *kd)
 	// FFT init
 	kd->cfg = kiss_fftr_alloc(FFTSIZE, 0, NULL, NULL);
 	kd->fftbuf = (kiss_fft_cpx *) KISS_FFT_MALLOC(sizeof(float) * FFTSIZE);	
+    //kd->fftblock = (kiss_fft_cpx **) malloc(sizeof(kiss_fft_cpx) * FFT_HIST);
+    for(int i = 0; i < FFT_HIST; i++) {
+        kd->fftblock[i] = (kiss_fft_cpx *) KISS_FFT_MALLOC(sizeof(float) * FFTSIZE);	
+        kd->fftblock_pos[i] = i;
+    }
 	kd->window  = new SAMPLE[BUFSIZE];
     memset( kd->window , 0, sizeof(SAMPLE)*kd->bufferSize );
 	hanning(kd->window, BUFSIZE);
     kd->fftWrap = 128;
+
 
     // set scale
     kd->scaleMax = 3.0;

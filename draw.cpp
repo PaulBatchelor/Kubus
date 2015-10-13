@@ -18,6 +18,45 @@ using namespace std;
 #include "hsl.h"
 #include "kubus.h"
 
+void kubus_fftrotate(KubusData *kd)
+{
+    for(int i = 0; i < FFT_HIST; i++) {
+        if(kd->fftblock_pos[i] > 0) {
+            kd->fftblock_pos[i] = kd->fftblock_pos[i] - 1;
+        } else {
+            kd->fftblock_pos[i] = FFT_HIST -1;
+        }
+    }
+}
+
+void kubus_draw_fft_line(KubusData *kd, kiss_fft_cpx *fftbuf, float strength)
+{
+    // start primitive
+    KColor clr;
+    kcolor_set(&kd->clr, &clr);
+    kcolor_scale(&clr, strength, 0);
+    kcolor_color(&clr);
+    //glColor3f(1 * strength, 0 * strength, 0 * strength); 
+    glBegin( GL_LINE_STRIP );
+    GLfloat x = -5;
+    GLfloat xinc = ::fabs(x*2 / (kd->bufferSize / 2));
+    GLfloat div = (1 / 32.0);
+    GLfloat y = (-1 + (1/32.0) + (68.0 * 2.0 * div));
+    // loop over buffer
+    for( int i = 0; i < kd->bufferSize / 2; i++ )
+    {
+        // plot
+        glVertex2f( x , -y + 0.01 * 
+                cmp_abs(fftbuf[i]));
+        // increment x
+        x += xinc;
+    }
+    
+    // end primitive
+    glEnd();
+
+}
+
 float scale_samp(float x) 
 {
     float s = floor((fabs(x) * 8)) / 8.0;
@@ -130,7 +169,9 @@ void kubus_draw(KubusData *kd)
     GLfloat jitX = 0, jitY = 0;
     binNum = 0; 
     apply_window(kd->buffer, kd->wbuffer, kd->window, kd->bufferSize);
-    kiss_fftr(kd->cfg, kd->wbuffer, kd->fftbuf);
+    kiss_fftr(kd->cfg, kd->wbuffer, kd->fftblock[kd->fftblock_pos[0]]);
+
+
     for(int i = 0; i < kd->bufferSize; i++) {
         x = i % 32;
         y = i / 32; 
@@ -146,9 +187,10 @@ void kubus_draw(KubusData *kd)
             kcolor_scale(&out, fabs(kd->buffer[32 * y + x]), kd->tog_rainbow);
         }
 
-        if(kd->showFFT) {
-            kcolor_fft(&out,  0.2 * cmp_abs(kd->fftbuf[binNum]));
-        }
+        //if(kd->showFFT) {
+        //    kcolor_fft(&out,  0.2 * cmp_abs(kd->fftblock[
+        //                kd->fftblock_pos[0]][binNum]));
+        //}
         kcolor_color(&out);
 
         if( kd->scale_bp >= kd->jit_thresh && rand() % 20 == 0 && kd->tog_jit ) {
@@ -167,6 +209,15 @@ void kubus_draw(KubusData *kd)
             ((-1 + div + (31 - y) * 2 * div) + jitY) * scale, 
             div * scale); 
 	}
+
+    if(kd->showFFT) {
+        for(int i = 0; i < FFT_HIST - 1; i++) {
+            kubus_draw_fft_line(kd, kd->fftblock[kd->fftblock_pos[i]], 
+                    (1.0 / FFT_HIST) * (FFT_HIST - i));
+        }
+        kubus_fftrotate(kd);
+    }
+
 
     glFlush( );
     glutSwapBuffers( );
