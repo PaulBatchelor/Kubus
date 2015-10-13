@@ -1,6 +1,6 @@
 # Kubus
 
-![Kubus](screenshots/preview.png)
+![Kubus](screenshots/front.png)
 
 Larger resolution screenshots: [1](screenshots/aphex.png)
 [2](screenshots/autechre.png)
@@ -19,6 +19,11 @@ the squares.
 
 See the Usage section for more details about the different modes and functionality
 of Kubus.
+
+# Downloading Kubus
+
+If you're not already there, Kubus can be found on 
+[github](http://www.github.com/paulbatchelor/kubus).
 
 ## Compilation
 
