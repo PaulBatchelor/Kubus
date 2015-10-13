@@ -1,9 +1,9 @@
 [audio]
 sr = 48000
 gain = 1
-bp_freq = 4000
+bp_freq = 7000
 bp_gain = 10.0
-bp_bw = 300
+bp_bw = 700
 
 [modes]
 pulse = 1
@@ -20,5 +20,5 @@ jit_thresh =  0.2
 fftWrap = 128
 color_r = 0
 color_g = 128
-color_b = 255
+color_b = 127
 inertia = 0.001

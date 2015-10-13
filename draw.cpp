@@ -34,7 +34,7 @@ void kubus_draw_fft_line(KubusData *kd, kiss_fft_cpx *fftbuf, float strength)
     // start primitive
     KColor clr;
     kcolor_set(&kd->clr, &clr);
-    kcolor_scale(&clr, strength, 0);
+    kcolor_scale(&clr, strength, kd->tog_rainbow);
     kcolor_color(&clr);
     //glColor3f(1 * strength, 0 * strength, 0 * strength); 
     glBegin( GL_LINE_STRIP );
